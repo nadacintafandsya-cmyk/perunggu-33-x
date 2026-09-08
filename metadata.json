@@ -1,0 +1,8 @@
+{
+  "name": "Remix Perunggu - 33x Lyrics",
+  "description": "Chorus lyrics and details for the song \u002733x\u0027 by Perunggu from the album Memorandum.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
