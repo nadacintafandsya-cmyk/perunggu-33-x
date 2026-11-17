@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   Copy,
@@ -20,8 +20,9 @@ export default function App() {
   const [showStory, setShowStory] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [isPlayingPulse, setIsPlayingPulse] = useState<boolean>(false);
+  const copyResetTimeoutRef = useRef<number | null>(null);
 
-  const getActiveTextToCopy = () => {
+  const activeTextToCopy = useMemo(() => {
     if (viewMode === "chorus-1") {
       return primaryChorusLines.join("\n");
     }
@@ -31,30 +32,45 @@ export default function App() {
     return songData.sections
       .map((sec) => `[${sec.title}]\n${sec.lines.join("\n")}`)
       .join("\n\n");
-  };
+  }, [viewMode]);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
+    const textToCopy = activeTextToCopy;
+
     try {
-      await navigator.clipboard.writeText(getActiveTextToCopy());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2200);
+      await navigator.clipboard.writeText(textToCopy);
     } catch {
-      // fallback
       const textarea = document.createElement("textarea");
-      textarea.value = getActiveTextToCopy();
+      textarea.value = textToCopy;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand("copy");
       document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2200);
-    }
-  };
+    } finally {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
 
-  const activeChorusSection =
-    viewMode === "chorus-2"
-      ? songData.sections.find((s) => s.id === "chorus-2")
-      : songData.sections.find((s) => s.id === "chorus-1");
+      setCopied(true);
+      copyResetTimeoutRef.current = window.setTimeout(() => setCopied(false), 2200);
+    }
+  }, [activeTextToCopy]);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const activeChorusSection = useMemo(
+    () =>
+      viewMode === "chorus-2"
+        ? songData.sections.find((s) => s.id === "chorus-2")
+        : songData.sections.find((s) => s.id === "chorus-1"),
+    [viewMode]
+  );
 
   return (
     <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col justify-between selection:bg-amber-500/30 selection:text-amber-200">
